@@ -3,11 +3,11 @@
   <title>thump-thump</title>
   
   
-  <link href="/blog/atom.xml" rel="self"/>
+  <link href="/atom.xml" rel="self"/>
   
-  <link href="http://yoursite.com/"/>
+  <link href="http://dxylive.top/"/>
   <updated>2019-11-05T10:35:32.000Z</updated>
-  <id>http://yoursite.com/</id>
+  <id>http://dxylive.top/</id>
   
   <author>
     <name>春鱼未暖</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>Integer和int区别</title>
-    <link href="http://yoursite.com/2019/11/05/Integer%E5%92%8Cint%E5%8C%BA%E5%88%AB/"/>
-    <id>http://yoursite.com/2019/11/05/Integer和int区别/</id>
+    <link href="http://dxylive.top/2019/11/05/Integer%E5%92%8Cint%E5%8C%BA%E5%88%AB/"/>
+    <id>http://dxylive.top/2019/11/05/Integer和int区别/</id>
     <published>2019-11-05T10:31:51.000Z</published>
     <updated>2019-11-05T10:35:32.000Z</updated>
     
@@ -37,14 +37,14 @@
     
     
     
-      <category term="java基础" scheme="http://yoursite.com/tags/java%E5%9F%BA%E7%A1%80/"/>
+      <category term="java基础" scheme="http://dxylive.top/tags/java%E5%9F%BA%E7%A1%80/"/>
     
   </entry>
   
   <entry>
     <title>事务的几大概念</title>
-    <link href="http://yoursite.com/2019/11/05/%E4%BA%8B%E5%8A%A1%E7%9A%84%E5%87%A0%E5%A4%A7%E6%A6%82%E5%BF%B5/"/>
-    <id>http://yoursite.com/2019/11/05/事务的几大概念/</id>
+    <link href="http://dxylive.top/2019/11/05/%E4%BA%8B%E5%8A%A1%E7%9A%84%E5%87%A0%E5%A4%A7%E6%A6%82%E5%BF%B5/"/>
+    <id>http://dxylive.top/2019/11/05/事务的几大概念/</id>
     <published>2019-11-05T10:31:51.000Z</published>
     <updated>2019-11-05T10:36:06.000Z</updated>
     
@@ -62,7 +62,7 @@
     
     
     
-      <category term="事务" scheme="http://yoursite.com/tags/%E4%BA%8B%E5%8A%A1/"/>
+      <category term="事务" scheme="http://dxylive.top/tags/%E4%BA%8B%E5%8A%A1/"/>
     
   </entry>
   
