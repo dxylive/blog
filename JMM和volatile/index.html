@@ -1,0 +1,786 @@
+<!DOCTYPE html><html class="theme-next mist use-motion" lang="zh-Hans"><head>
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+<meta name="baidu-site-verification" content="g0KrmPL22L">
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="并发,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="thump" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="现代计算机主要结构组成 一个main方法进来先从内存条load到L3缓存中再依次copy到L2,L1,ALU寄存器当中  等待cpu的进程有空闲后进行计算 在计算后写回的值会从ALU load到L1-&amp;gt;L2-&amp;gt;L3但是不会直接放回内存中，在需要读取的时候 才会进行读取，如果需要强制行读取到内存，需要使用Mesi缓存一致性协议 内存和cpu之间交互模型 内存通过加载进程中代码段编译后的指">
+<meta name="keywords" content="并发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JMM和volatile">
+<meta property="og:url" content="http://dxylive.top/JMM%E5%92%8Cvolatile/index.html">
+<meta property="og:site_name" content="thump">
+<meta property="og:description" content="现代计算机主要结构组成 一个main方法进来先从内存条load到L3缓存中再依次copy到L2,L1,ALU寄存器当中  等待cpu的进程有空闲后进行计算 在计算后写回的值会从ALU load到L1-&amp;gt;L2-&amp;gt;L3但是不会直接放回内存中，在需要读取的时候 才会进行读取，如果需要强制行读取到内存，需要使用Mesi缓存一致性协议 内存和cpu之间交互模型 内存通过加载进程中代码段编译后的指">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://dxylive.top/images/image-20200519095550487.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200519111942892.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200519172339337.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200519113311938.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200521212844650.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200525194934311.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200525224219144.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200527152733528.png">
+<meta property="og:image" content="http://dxylive.top/images/image-20200527152837939.png">
+<meta property="og:updated_time" content="2020-06-23T09:14:32.407Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://dxylive.top/images/image-20200519095550487.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://dxylive.top/JMM和volatile/">
+
+
+
+
+
+  <title>JMM和volatile | thump</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+<a href="https://github.com/dxylive" target="_blank" rel="noopener" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">thump</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://dxylive.top/JMM%E5%92%8Cvolatile/">
+
+    <span hidden="" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="春鱼未暖">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden="" itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="thump">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">JMM和volatile</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-23T17:07:53+08:00">
+                2020-04-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="现代计算机主要结构组成"><a href="#现代计算机主要结构组成" class="headerlink" title="现代计算机主要结构组成"></a>现代计算机主要结构组成</h3><p><img src="/images/image-20200519095550487.png" alt="img"></p>
+<p>一个main方法进来先从内存条load到L3缓存中再依次copy到L2,L1,ALU寄存器当中 </p>
+<p>等待cpu的进程有空闲后进行计算</p>
+<p>在计算后写回的值会从ALU load到L1-&gt;L2-&gt;L3但是不会直接放回内存中，在需要读取的时候</p>
+<p>才会进行读取，如果需要强制行读取到内存，需要使用<strong>Mesi缓存一致性协议</strong></p>
+<h3 id="内存和cpu之间交互模型"><a href="#内存和cpu之间交互模型" class="headerlink" title="内存和cpu之间交互模型"></a>内存和cpu之间交互模型</h3><p><img src="/images/image-20200519111942892.png" alt="img"></p>
+<p><strong>内存</strong>通过加载进程中代码段编译后的指令操作<strong>指令寄存器</strong>发出指令去<strong>运算单元</strong>进行运算，并且记录在<strong>指令计数器</strong>，指令计数器对应指令地址符</p>
+<p><strong>运算单元</strong>获取指令后进行指令操作从<strong>存储单元</strong>获取数据并写回</p>
+<p><strong>存储单元</strong>和数据段进行交换处理</p>
+<h3 id="CPU多核缓存架构"><a href="#CPU多核缓存架构" class="headerlink" title="CPU多核缓存架构"></a>CPU多核缓存架构</h3><p><img src="/images/image-20200519172339337.png" alt="img"></p>
+<p><img src="/images/image-20200519113311938.png" alt="img"></p>
+<p>保持cpu数据一致性有两种方法</p>
+<ol>
+<li>总线加锁</li>
+<li>缓存一致性协议</li>
+</ol>
+<p>总线加锁效率很低，对主内存区域加锁，只有少数情况才会使用</p>
+<h3 id="MESI缓存一致性协议"><a href="#MESI缓存一致性协议" class="headerlink" title="MESI缓存一致性协议"></a>MESI缓存一致性协议</h3><p>Cache Line是cpu中的最小储存单元</p>
+<p><strong>M（Modified）</strong>:修改  </p>
+<p>​    该<strong>Cache Line</strong>有效，数据被修改了，和内存中的数据不一致，该数据只存储在本cache中</p>
+<p><strong>E（Exclusive）</strong>:独占，互斥</p>
+<p>​    该<strong>Cache Line</strong>有效，数据和内存中的数据一致，数据只存储在本cache中</p>
+<p><strong>S（Shared）</strong>:共享</p>
+<p>​    该<strong>Cache Line</strong>有效，数据和内存中的数据一致，数据存储在很多cache中</p>
+<p><strong>I（Invalid）</strong>:无效</p>
+<p>​    该<strong>Cache Line</strong>无效</p>
+<p><strong>缓存一致性协议什么时候会失效</strong></p>
+<p>1.x存储长度大于一个缓存行，只能加总线锁</p>
+<p>2.cpu不支持缓存一致性协议</p>
+<p>eg：主内存x=1   做+1+1的操作</p>
+<p>当Cpu1 和 Cpu2同时进行+1的处理操作，CPU1将x=1先load到缓存中将x置为<strong>E（独占状态）</strong></p>
+<p><strong>总线嗅探</strong>时刻监听有没有其他cpu做获取这个变量的操作</p>
+<p>监听到了后，会把两个Cpu的x=1都置为<strong>S（共享状态）</strong></p>
+<p>当得到了计算结果即x=2时 将得到结果的Cpu1置为<strong>M（修改状态）</strong>，锁住缓存行，向bus总线发出一条消息</p>
+<p>此时Cpu2也会进行<strong>总线嗅探</strong>监听到Cpu1向总线发出的消息，将自己cache块中的x=2置为<strong>I(无效状态)</strong></p>
+<p>Cpu1将变会<strong>E（独占状态）</strong>向内存进行写回操作</p>
+<p>Cpu2将无效状态的cache<strong>丢弃</strong>，从总线继续获取x变量</p>
+<p>Q1:如果两个cpu同时将S状态改成M状态 怎么办？</p>
+<p>A1:一个指令周期内会进行裁决，赢了置为M 输了置为I</p>
+<p>Q2:缓存行有多大？</p>
+<p>A2:32字节-64字节-128字节</p>
+<p>Q3:机械硬盘最小存储单元</p>
+<p>A3:簇</p>
+<h3 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h3><p>1.2版本后 jvm通过Thread操作的是操作系统，而不是cpu</p>
+<p><img src="/images/image-20200521212844650.png" alt="img"></p>
+<p>jvm自己创建的线程都是用户线程，系统内核空间所直接控制的线程为内核级线程，内核线程可以操作cpu中的Ring0安全级别，用户线程只能通过用户空间调用内核空间中提供的一些接口去创建Ring0级别线程，否则只能创建ring3级别，由此防止个各线程之间的冲突</p>
+<h4 id="ULT（用户级线程）与KLT（内核级线程）"><a href="#ULT（用户级线程）与KLT（内核级线程）" class="headerlink" title="ULT（用户级线程）与KLT（内核级线程）"></a>ULT（用户级线程）与KLT（内核级线程）</h4><p><img src="/images/image-20200525194934311.png" alt="img"></p>
+<h4 id="线程上下文切换"><a href="#线程上下文切换" class="headerlink" title="线程上下文切换"></a>线程上下文切换</h4><p><img src="/images/image-20200525224219144.png" alt="img"></p>
+<p>当Ta程序申请的cpu时间片耗尽，需归还cpu将中间数据，指令，程序指针通过寄存器写入到内核空间的Tss状态任务段中，然后切换其他竞争到cpu时间片的线程，等到Ta再次抢占到时间片后从内核空间读取数据继续运行 </p>
+<p>volatile  只能保证可见性，有序性 不能保证原子性</p>
+<p><strong>-XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly -Xcomp</strong>  配合插件查看反汇编指令</p>
+<h4 id="java内存模型同步规则"><a href="#java内存模型同步规则" class="headerlink" title="java内存模型同步规则"></a>java内存模型同步规则</h4><p>1.不允许一个线程无原因的（没发生过赋值assign操作）把数据从工作内存同步回主内存</p>
+<p>2.一个新的变量只能在主存中诞生，在对一个变量进行<strong>use</strong>和<strong>store</strong>操作前，必须先进性<strong>assign</strong>和<strong>load</strong>的操作</p>
+<p>3.一个变量在同一时刻只允许一条线程进行<strong>lock</strong>操作，但lock操作可以被一个线程重复执行多次，多次<strong>lock</strong>后需多次<strong>unlock</strong>，<strong>lock</strong>和<strong>unlock</strong>是成对出现的</p>
+<p>4.如果对一个变量执行lock操作，会清空工作内存中此变量的值，在执行引擎使用这个变量前需要重新load或assign操作初始化的值</p>
+<p>5.如果一个变量事先没有被lock，那么不允许unlock，也不允许unlock其他线程锁定的变量</p>
+<h4 id="volatile内存屏障jmm保守策略"><a href="#volatile内存屏障jmm保守策略" class="headerlink" title="volatile内存屏障jmm保守策略"></a>volatile内存屏障jmm保守策略</h4><ul>
+<li><p>在每个volatile写操作的前面插入一个StoreStore屏障。 </p>
+</li>
+<li><p>在每个volatile写操作的后面插入一个StoreLoad屏障。 </p>
+</li>
+<li><p>在每个volatile读操作的后面插入一个LoadLoad屏障。 </p>
+</li>
+<li><p>在每个volatile读操作的后面插入一个LoadStore屏障。</p>
+</li>
+</ul>
+<p><img src="/images/image-20200527152733528.png" alt="img"></p>
+<p><img src="/images/image-20200527152837939.png" alt="img"></p>
+<p><strong>volatile可以对并发下的单例模式做禁止重排序的处理</strong></p>
+<figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">private volatile static Singleton myinstance;</span><br><span class="line"></span><br><span class="line">public static Singleton getInstance() {</span><br><span class="line">    if (myinstance == null) {</span><br><span class="line">        synchronized (Singleton.class) {</span><br><span class="line">            if (myinstance == null) {</span><br><span class="line">                myinstance = new Singleton();//对象创建过程，本质可以分文三步</span><br><span class="line">                //对象延迟初始化</span><br><span class="line">                //</span><br><span class="line">            }</span><br><span class="line">        }</span><br><span class="line">    }</span><br><span class="line">    return myinstance;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+
+<p>这段代码是双重加锁，创建对象分为三个步骤：</p>
+<p>1.分配内存空间</p>
+<p>2.创建初始化对象</p>
+<p>3.设置instance将指针指向内存空间 （此时instance才有值）</p>
+<p>3个步骤是没有办法保证原子性的</p>
+
+      
+    </div>
+    
+    
+    
+
+    <div>
+      
+        <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束,感谢您的阅读-------------</div>
+    
+</div>
+      
+    </div>
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag"># 并发</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/%E5%85%A8%E8%A1%A8%E6%89%AB%E6%8F%8F%E7%9A%84%E5%87%A0%E7%A7%8D%E7%B3%9F%E7%B3%95%E6%83%85%E5%86%B5/" rel="next" title="全表扫描的几种糟糕情况">
+                <i class="fa fa-chevron-left"></i> 全表扫描的几种糟糕情况
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="春鱼未暖">
+            
+              <p class="site-author-name" itemprop="name">春鱼未暖</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#现代计算机主要结构组成"><span class="nav-number">1.</span> <span class="nav-text">现代计算机主要结构组成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存和cpu之间交互模型"><span class="nav-number">2.</span> <span class="nav-text">内存和cpu之间交互模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CPU多核缓存架构"><span class="nav-number">3.</span> <span class="nav-text">CPU多核缓存架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MESI缓存一致性协议"><span class="nav-number">4.</span> <span class="nav-text">MESI缓存一致性协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程"><span class="nav-number">5.</span> <span class="nav-text">线程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ULT（用户级线程）与KLT（内核级线程）"><span class="nav-number">5.1.</span> <span class="nav-text">ULT（用户级线程）与KLT（内核级线程）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线程上下文切换"><span class="nav-number">5.2.</span> <span class="nav-text">线程上下文切换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#java内存模型同步规则"><span class="nav-number">5.3.</span> <span class="nav-text">java内存模型同步规则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#volatile内存屏障jmm保守策略"><span class="nav-number">5.4.</span> <span class="nav-text">volatile内存屏障jmm保守策略</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async="" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<div class="copyright">© <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">春鱼未暖</span>
+
+  <div class="powered-by">
+    <i class="fa fa-user-md"></i><span id="busuanzi_container_site_pv">
+      本站访客数: <span id="busuanzi_value_site_pv"></span>
+    </span>
+  </div>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+  <div class="theme-info"></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  
+  
+    
+  
+
+  
+  
+    
+  
+
+  
+  
+    
+  
+
+  
+  
+    
+  
+
+  
+  
+    
+  
+
+
+  
+
+
+  
+
+  
+
+
+
+  
+  
+
+  
+  
+
+
+
+
+  
+
+
+  
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+
+<script src="/bundle.js"></script><script>InstantClick.init();</script><script async>window.onload=function(){var a=document.createElement('script'),b=document.getElementsByTagName('script')[0];a.type='text/javascript',a.async=!0,a.src='/sw-register.js?v='+Date.now(),b.parentNode.insertBefore(a,b)};</script></body></html>
